@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hawaiʻi Shark Incidents</title>
+<meta name="description" content="Interactive dashboard of documented shark-bite incidents in Hawaiʻi, built from the official DLNR incident list.">
+<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/vendor/markercluster/MarkerCluster.css">
+<link rel="stylesheet" href="assets/vendor/markercluster/MarkerCluster.Default.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="site-header">
+    <div class="site-header-row">
+      <h1>🦈 Hawaiʻi Shark Incidents</h1>
+      <button id="theme-toggle" class="theme-toggle" type="button" title="Switch between light and dark" aria-label="Switch between light and dark">🌙</button>
+    </div>
+    <p class="subtitle">An interactive look at documented shark-bite incidents across the Hawaiian Islands, built from the official State of Hawaiʻi DLNR incident list. Filter by time range, island, activity, and outcome.</p>
+  </header>
+
+  <div class="notice" role="note">
+    <strong>⚠️ Please read before drawing conclusions from this map.</strong>
+    This dashboard visualizes historical shark-bite reports for research and educational purposes only — it is <strong>not a safety guide or risk rating</strong> for any beach, break, or island. Shark bites are extremely rare relative to the number of people in Hawaiian waters every day, and a place with markers simply has documented history, not necessarily elevated present-day risk; a place with none may simply be less visited or have shorter reporting history. Please don't use this data as your sole basis for choosing, avoiding, or favoring a location. Always check current conditions, posted signage, and local ocean-safety advisories before entering the water, and follow guidance from lifeguards and local authorities. Be respectful of the ocean, of sharks and other marine wildlife (native and ecologically important), of reefs, and of local communities and their relationship with these places. Locations shown are approximate (place-name based, not exact GPS). This project and its author accept no liability for decisions made, or outcomes resulting from, use of this information — you assume full responsibility for your own ocean safety choices. Mahalo!
+  </div>
+
+  <section class="controls" aria-label="Filters">
+    <div class="control-group">
+      <span class="control-label">Time range</span>
+      <div class="segmented" id="range-controls" role="group" aria-label="Time range">
+        <button data-range="1y">Last 1 year</button>
+        <button data-range="5y" class="active">Last 5 years</button>
+        <button data-range="all">All time (1995–present)</button>
+        <button data-range="custom">Custom…</button>
+      </div>
+      <div class="custom-range" id="custom-range" hidden>
+        <label>From <input type="date" id="custom-start"></label>
+        <label>To <input type="date" id="custom-end"></label>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Island</span>
+      <div class="chip-group" id="island-filters"></div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Activity</span>
+      <div class="chip-group" id="activity-filters"></div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Outcome</span>
+      <div class="chip-group" id="outcome-filters"></div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">&nbsp;</span>
+      <label class="checkbox-inline"><input type="checkbox" id="confirmed-only"> Confirmed shark bites only</label>
+      <button id="reset-filters" class="link-button">Reset filters</button>
+    </div>
+  </section>
+
+  <section class="stats" id="stats" aria-label="Summary statistics"></section>
+
+  <section class="main-grid">
+    <div class="panel map-panel">
+      <div class="panel-header">
+        <h2>Incident locations</h2>
+        <div class="legend" id="map-legend"></div>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <div class="panel charts-panel">
+      <div class="chart-block time-chart-toolbar" style="grid-column: span 2;">
+        <div class="toolbar-row">
+          <span class="control-label">Color the 3 time charts below by</span>
+          <div class="segmented segmented-small" id="time-color-controls" role="group" aria-label="Color time charts by">
+            <button data-color-mode="activity" class="active">Activity</button>
+            <button data-color-mode="island">Island</button>
+          </div>
+        </div>
+        <div class="toolbar-row">
+          <span class="legend" id="time-chart-color-legend"></span>
+        </div>
+        <div class="toolbar-row">
+          <span class="shape-legend">
+            <span class="shape-legend-item"><span class="shape-dot shape-circle"></span>No injury</span>
+            <span class="shape-legend-item"><span class="shape-dot shape-triangle"></span>Injury</span>
+            <span class="shape-legend-item"><span class="shape-dot shape-diamond"></span>Fatal</span>
+          </span>
+        </div>
+      </div>
+      <div class="chart-block">
+        <h3>Incidents per year</h3>
+        <div id="chart-year" class="chart chart-tall"></div>
+        <div id="hoverlist-year" class="hoverlist"></div>
+      </div>
+      <div class="chart-block">
+        <h3>Seasonality (by month)</h3>
+        <div id="chart-month" class="chart chart-tall"></div>
+        <div id="hoverlist-month" class="hoverlist"></div>
+      </div>
+      <div class="chart-block">
+        <h3>Time of day</h3>
+        <div id="chart-hour" class="chart chart-tall"></div>
+        <div id="hoverlist-hour" class="hoverlist"></div>
+      </div>
+      <div class="chart-block">
+        <h3>By island</h3>
+        <div id="chart-island" class="chart"></div>
+        <div id="hoverlist-island" class="hoverlist"></div>
+      </div>
+      <div class="chart-block" style="grid-column: span 2;">
+        <h3>By activity</h3>
+        <div id="chart-activity" class="chart"></div>
+        <div id="hoverlist-activity" class="hoverlist"></div>
+      </div>
+      <div class="chart-block" style="grid-column: span 2;">
+        <h3>Outcome</h3>
+        <div id="chart-outcome" class="chart" style="height:120px;"></div>
+        <div id="hoverlist-outcome" class="hoverlist"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel table-panel">
+    <div class="panel-header">
+      <h2>Incident log (<span id="table-count"></span>)</h2>
+    </div>
+    <div class="table-scroll">
+      <table id="incident-table">
+        <thead>
+          <tr>
+            <th data-sort="date">Date</th>
+            <th data-sort="island">Island</th>
+            <th data-sort="place">Location</th>
+            <th data-sort="activity">Activity</th>
+            <th data-sort="species">Species</th>
+            <th data-sort="outcome">Outcome</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p>Data source: <a href="https://dlnr.hawaii.gov/sharks/shark-incidents/incidents-list/" target="_blank" rel="noopener">Hawaiʻi DLNR Division of Aquatic Resources – Shark Incidents List</a>. Last updated <span id="last-updated">—</span>. Refreshed automatically on a weekly schedule.</p>
+    <p class="disclaimer">Excludes encounters where a shark did not bite a person or board, and incidents classified by the International Shark Attack File as boat attacks, scavenge, or doubtful. Locations are approximate — derived from place names in the DLNR list, not GPS coordinates — and shark lengths are estimates. See the DLNR page for full notes and methodology.</p>
+    <p class="credits">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Built with <a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> &amp; <a href="https://plotly.com/javascript/" target="_blank" rel="noopener">Plotly.js</a></p>
+  </footer>
+</div>
+
+<script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="assets/vendor/markercluster/leaflet.markercluster.js"></script>
+<script src="assets/vendor/plotly/plotly-basic.min.js"></script>
+<script src="assets/js/palette.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/map.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

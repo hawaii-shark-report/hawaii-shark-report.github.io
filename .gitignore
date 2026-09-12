@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+.devpreview/
+node_modules/
+README.rb.md
